@@ -48,7 +48,7 @@ class spark(object):
 
     def run_sql(self, statement: str):
         '''
-
+        Helper to issue sql queries to spark session
         '''
         try:
             result = self._spark.sql(statement)
@@ -80,6 +80,12 @@ class spark(object):
         @return unique groups in descending order
         '''
         return grouped_df.count().orderBy(desc('count'))
+
+    def udf_string_type(self, input_function):
+        '''
+        Convert input string porcessing function to UDF
+        '''
+        return udf(input_function, ArrayType(StringType())).asNondeterministic()
         
 
 
