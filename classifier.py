@@ -2,6 +2,9 @@ from spark.spark_api import spark
 from data.storage_factory import storage_factory
 from bs4 import BeautifulSoup
 
+DATABASE_NAME = "yelp_dataset"
+TABLE_NAME = "reviews"
+
 def get_storage_type():
     '''
     Read the global configuration file config.xml to get the storage type
@@ -29,9 +32,19 @@ if __name__ == "__main__":
     restaurant_business = spark_inst.drop_column(spark_inst.filter_dataframe(business_df,'categories like "%Restaurant%"'), 'stars')
     merged_df = spark_inst.merge_dataframes(review_df, restaurant_business, "business_id", "inner")
     
-    # 5) Create database
+    # 5) Create database and table
     spark_inst.run_sql('drop database if exists yelp_dataset cascade')
-    spark_inst.run_sql('create database yelp_dataset')
+    spark_inst.run_sql('create database {0}'.format(DATABASE_NAME))
     dbs = spark_inst.run_sql('show databases')
-    print(dbs.toPandas())
+
+    spark_inst.set_conf("spark.sql.legacy.allowCreatingManagedTableUsingNonemptyLocation", "true")  # spark configuration to create table in non-empty location
+    spark_inst.create_table(merged_df, DATABASE_NAME, TABLE_NAME)
+    spark_inst.run_sql('use {0}'.format(DATABASE_NAME))
+    spark_inst.run_sql('REFRESH table {0}'.format(TABLE_NAME))
+    tbls = spark_inst.run_sql('show tables')
+    print(tbls.toPandas())
+
+    # # 6) Filter out largest business
+    # review_business_postal_df = spark_inst.run_sql('''SELECT business_id, text, postal_code FROM reviews''')
+    # print(review_business_postal_df.printSchema())
 

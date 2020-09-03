@@ -13,6 +13,12 @@ class spark(object):
         '''
         return self._spark
 
+    def set_conf(self, conf_name: str, conf_val: str):
+        '''
+        Set spark configuration
+        '''
+        self._spark.conf.set(conf_name, conf_val)
+
     def load_data(self, path: str):
         '''
         Returns spark data frame
@@ -72,6 +78,12 @@ class spark(object):
         @return grouped dataframe
         '''
         return input_df.groupby(group_by_col)
+
+    def create_table(self, input_df, database: str, tablename: str):
+        '''
+        Create table in input database
+        '''
+        input_df.write.mode('overwrite').format("parquet").saveAsTable("{0}.{1}".format(database, tablename))
 
     def order_by_count(self, grouped_df):
         '''
