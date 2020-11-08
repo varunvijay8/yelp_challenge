@@ -28,13 +28,25 @@ class spark(object):
         '''
         return self._spark.read.format('json').option("inferSchema", True).load(path)
     
-    def filter_dataframe(self, input_df, filter: str):
+    def select_column(self, input_df, columns: str):
+        return input_df.select(columns)
+
+    def filter_dataframe_sql(self, input_df, filter: str):
         '''
         Returns spark data frame with rows matching filter criteria
         @param input_df input spark data frame
         @param filter   filter string      
         '''
         return input_df.where(filter)
+
+    def filter_dataframe(self, input_df, input_col, filter: str):
+        '''
+        Returns spark data frame with rows matching filter criteria
+        @param input_df input spark data frame
+        @param input_col input key column to compare with filter
+        @param filter   filter string      
+        '''
+        return input_df.where(input_col == filter)
 
     def drop_column(self, input_df, column: str):
         '''
@@ -98,6 +110,9 @@ class spark(object):
         Convert input string porcessing function to UDF
         '''
         return udf(input_function, ArrayType(StringType())).asNondeterministic()
+
+    def apply_udf(self, input_df, new_col: str, input_udf, input_col):
+        return input_df.withColumn(new_col, input_udf(input_col)).collect()
         
 
 

@@ -6,9 +6,9 @@ from nltk import RegexpParser
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 
-from spacy import spacy
+from nlp_lib.spacy_lib import spacy_lib
 
-class nltk(object):
+class nltk_lib(object):
 
     def __init__(self):
         nltk.download('punkt')
@@ -18,7 +18,7 @@ class nltk(object):
         nltk.download('stopwords')
         nltk.download('wordnet')
         nltk.download('brown')
-        self._spacy_obj = spacy()
+        self._spacy_obj = spacy_lib()
 
     def chunk_nouns_3(self, sent):
         lst = []
@@ -29,5 +29,8 @@ class nltk(object):
         for subtree in parsed_output.subtrees(filter=lambda t: t.label() == 'NP'):
             lst.append(' '.join(word for (word, pos) in subtree.leaves()))
         return lst
+
+    def sentence_tokenize(self):
+        return sent_tokenize
 
     
