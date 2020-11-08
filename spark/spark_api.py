@@ -91,6 +91,15 @@ class spark(object):
         '''
         return input_df.groupby(group_by_col)
 
+    def group_dataframe_by_group_number(self, input_df, group_by_number: list):
+        '''
+        Group rows based on group numbers
+        @param input_df         input spark dataframe
+        @param group_by_number  list of numbers each row gets grouped to
+        @return grouped dataframe
+        '''
+        return input_df.groupby(group_by_number)
+    
     def create_table(self, input_df, database: str, tablename: str):
         '''
         Create table in input database

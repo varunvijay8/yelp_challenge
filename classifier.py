@@ -3,7 +3,9 @@ from data.storage_factory import storage_factory
 from nlp_lib.nltk_lib import nltk_lib
 from nlp_lib.spacy_lib import spacy_lib
 from bs4 import BeautifulSoup
+from nlp_lib.universal_sentence_encoder import universal_sent_encoder
 import pandas as pd
+import numpy as np
 
 DATABASE_NAME = "yelp_dataset"
 TABLE_NAME = "reviews"
@@ -24,6 +26,7 @@ if __name__ == "__main__":
     spark_inst = spark()
     nltk_inst = nltk_lib()
     spacy_inst = spacy_lib()
+    encoder_inst = universal_sent_encoder()
 
     # 2) Create instance of storage class
     review_storage = storage_factory.getstorage(get_storage_type(), 'review')     # review path
@@ -77,5 +80,11 @@ if __name__ == "__main__":
     lemmatized_sent_df = pd.DataFrame(lemmatized_sent_series.to_list(), columns=['review_lemma'])
     print(lemmatized_sent_df.head())
 
-
+    # 8) Encode lemmatized sentences
+    grouped_df = spark_inst.group_dataframe_by_group_number(lemmatized_sent_df, np.arange(len(lemmatized_sent_df)) // 400)
+    encoded_sent_np = np.empty((0,512), dtype=float)
+    for n, gp in grouped_df:
+        encoded_sent_np = np.append(encoded_sent_np, gp.apply(encoder_inst.uni_sent_enc).iloc[0], axis=0)
+    print(encoded_sent_np[:8])
+    
 
