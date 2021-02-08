@@ -2,6 +2,7 @@ from spark.spark_api import spark
 from data.storage_factory import storage_factory
 from nlp_lib.nltk_lib import nltk_lib
 from nlp_lib.spacy_lib import spacy_lib
+from sklearn_lib.sklearn_api import sklearn_agglomerative_model
 from bs4 import BeautifulSoup
 from nlp_lib.universal_sentence_encoder import universal_sent_encoder
 import pandas as pd
@@ -27,6 +28,7 @@ if __name__ == "__main__":
     nltk_inst = nltk_lib()
     spacy_inst = spacy_lib()
     encoder_inst = universal_sent_encoder()
+    agglomerative_model_inst = sklearn_agglomerative_model()
 
     # 2) Create instance of storage class
     review_storage = storage_factory.getstorage(get_storage_type(), 'review')     # review path
@@ -62,7 +64,7 @@ if __name__ == "__main__":
     top_business = business_desc_review_cnt_pd.business_id[0]
     top_business_df = spark_inst.filter_dataframe(review_business_postal_df, 
                                                   review_business_postal_df.business_id, str(top_business))
-    result = top_business_df
+    result = top_business_df.sample(False, 0.05, 0) # experiment
     
 
     # 7) Pre-process reviews and tokenize to sentences
@@ -82,9 +84,25 @@ if __name__ == "__main__":
 
     # 8) Encode lemmatized sentences
     grouped_df = spark_inst.group_dataframe_by_group_number(lemmatized_sent_df, np.arange(len(lemmatized_sent_df)) // 400)
+    encoder = encoder_inst.uni_sent_enc
     encoded_sent_np = np.empty((0,512), dtype=float)
     for n, gp in grouped_df:
-        encoded_sent_np = np.append(encoded_sent_np, gp.apply(encoder_inst.uni_sent_enc).iloc[0], axis=0)
-    print(encoded_sent_np[:8])
+        encoded_sent_np = np.append(encoded_sent_np, gp.apply(encoder_inst.uni_sent_enc).iloc[0], axis=0)        
+    # sample_size = int(encoded_sent_np.size/256)
+    # sample_encoded_sent_np = encoded_sent_np[:2000] # experiment
+    # print(sample_size)
+    # print(sample_encoded_sent_np.size)
+    clusters_lemma = agglomerative_model_inst.agglomerative_model.fit(X=encoded_sent_np)
+    cluster_lemma_label_df = pd.DataFrame(clusters_lemma.labels_.tolist(), columns=['label'])
+    
+    #@title Label 0 clusters service/experience related sentences
+    non_food_df = sentence_df[(cluster_lemma_label_df.label==0).values]
+    lemmatized_non_food_df = lemmatized_sent_df[(cluster_lemma_label_df.label==0).values]
+    print(non_food_df.head())
+
+    #@title Label 1 clusters food related sentences
+    food_df = sentence_df[(cluster_lemma_label_df.label==1).values]
+    lemmatized_food_df = lemmatized_sent_df[(cluster_lemma_label_df.label==1).values]
+    print(food_df.head())
     
 
